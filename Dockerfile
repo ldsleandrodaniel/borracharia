@@ -9,8 +9,8 @@ RUN dotnet restore "borracharia.csproj"
 # 2. Copia o resto
 COPY . .
 
-# 3. Publica o projeto
-RUN dotnet publish "borracharia.csproj" -c Release -o /app \
+# 3. Publica o projeto (agora na raiz /publish)
+RUN dotnet publish "borracharia.csproj" -c Release -o /publish \
     -p:RuntimeIdentifier=linux-x64 \
     --self-contained false
 
@@ -20,7 +20,7 @@ WORKDIR /app
 
 # 4. Instala dependências para PostgreSQL
 RUN apt-get update && \
-    apt-get install -y libgdiplus && \
+    apt-get install -y libgdiplus libpq-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -29,8 +29,8 @@ EXPOSE 80
 ENV ASPNETCORE_URLS=http://+:80
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-# 6. Copia os arquivos publicados
-COPY --from=build /app .
+# 6. Copia os arquivos publicados (agora da raiz /publish)
+COPY --from=build /publish .
 
 # 7. Entrypoint
 ENTRYPOINT ["dotnet", "borracharia.dll"]
