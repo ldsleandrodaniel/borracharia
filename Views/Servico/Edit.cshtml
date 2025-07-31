@@ -1,0 +1,55 @@
+﻿@model borracharia.Models.Servico
+
+@{
+    ViewData["Title"] = "Editar Serviço";
+}
+
+<div class="container mt-4">
+    <div class="card border-primary">
+        <div class="card-header bg-primary text-white">
+            <h3 class="card-title">
+                <i class="bi bi-pencil-square"></i> @ViewData["Title"]
+            </h3>
+        </div>
+        <div class="card-body">
+            <form asp-action="Edit" class="needs-validation" novalidate id="servicoForm">
+                <input type="hidden" asp-for="Id" />
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="Nome" class="form-label fw-bold">Nome do Serviço</label>
+                        <input asp-for="Nome" class="form-control" placeholder="Ex: Troca de Pneu" required />
+                        <span asp-validation-for="Nome" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Valor" class="form-label fw-bold">Valor (R$)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input asp-for="Valor"
+                                   type="number"
+                                   class="form-control"
+                                   step="0.01"
+                                   min="0"
+                                   placeholder="Ex: 20,50"
+                                   required />
+                        </div>
+                        <span asp-validation-for="Valor" class="text-danger"></span>
+                        <small class="form-text text-muted">Digite apenas números e use vírgula ou ponto decimal.</small>
+                    </div>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <a asp-action="List" class="btn btn-outline-secondary me-md-2">
+                        <i class="bi bi-arrow-left"></i> Voltar para Lista
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Salvar Alterações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+}

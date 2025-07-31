@@ -1,0 +1,81 @@
+﻿@model IEnumerable<borracharia.Models.ServicoEfetuado>
+
+@{
+    ViewData["Title"] = "Serviços Efetuados";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-list-check"></i> @ViewData["Title"]</h2>
+        <div class="d-flex align-items-center">
+            <!-- Filtro por data (>= data selecionada) -->
+            <div class="mx-3">
+                <label for="dataFiltro" class="form-label">Data:</label>
+                <input type="date"
+                       id="dataFiltro"
+                       class="form-control"
+                       value="@(Context.Request.Query["data"].FirstOrDefault() ?? DateTime.Now.ToString("yyyy-MM-dd"))"
+                       onchange="filtrarPorData()" />
+            </div>
+    
+        </div>
+        <a asp-action="Create" class="btn btn-success btn-add">
+            <i class="bi bi-plus-circle"></i> Novo Serviço
+        </a>
+    </div>
+
+    @{
+        // Obtém a data da query string (ex: ?data=2023-11-20) ou usa hoje como padrão
+        var dataFiltroStr = Context.Request.Query["data"].FirstOrDefault();
+        DateTime dataFiltro;
+
+        if (!DateTime.TryParse(dataFiltroStr, out dataFiltro))
+        {
+            dataFiltro = DateTime.Today; // Padrão: hoje
+        }
+
+        // Filtra os itens (Data >= data selecionada)
+        var servicosFiltrados = Model.Where(item => item.Data.Date >= dataFiltro.Date).ToList();
+    }
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-primary">
+                <tr>
+                    <th>Serviço</th>
+                    <th>Data</th>
+                    <th>Valor Cobrado</th>
+                    <th>Observações</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in servicosFiltrados)
+                {
+                    <tr>
+                        <td>@Html.DisplayFor(modelItem => item.Servico.Nome)</td>
+                        <td>@item.Data.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@item.Valor.ToString("C", new System.Globalization.CultureInfo("pt-BR"))</td>
+                        <td>@Html.DisplayFor(modelItem => item.Observacao)</td>
+                        <td class="action-buttons">
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i> Excluir
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Script para recarregar a página ao alterar a data -->
+<script>
+    function filtrarPorData() {
+        const dataSelecionada = document.getElementById("dataFiltro").value;
+        window.location.href = `?data=${dataSelecionada}`;
+    }
+</script>

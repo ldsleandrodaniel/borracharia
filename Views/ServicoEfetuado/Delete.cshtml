@@ -1,0 +1,48 @@
+﻿@model borracharia.Models.ServicoEfetuado
+
+@{
+    ViewData["Title"] = "Excluir Serviço Efetuado";
+}
+
+<div class="container mt-4">
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+            <h3 class="card-title">
+                <i class="bi bi-exclamation-triangle"></i> @ViewData["Title"]
+            </h3>
+        </div>
+        <div class="card-body">
+            <h4 class="text-danger">Tem certeza que deseja excluir este registro?</h4>
+            <hr />
+
+            <dl class="row">
+                <dt class="col-sm-3">Serviço:</dt>
+                <dd class="col-sm-9">@Model.Servico.Nome</dd>
+
+                <dt class="col-sm-3">Data:</dt>
+                <dd class="col-sm-9">@Model.Data.ToString("dd/MM/yyyy HH:mm")</dd>
+
+                <dt class="col-sm-3">Valor Cobrado:</dt>
+                <dd class="col-sm-9">@Model.Valor.ToString("C", new System.Globalization.CultureInfo("pt-BR"))</dd>
+
+                @if (!string.IsNullOrEmpty(Model.Observacao))
+                {
+                    <dt class="col-sm-3">Observações:</dt>
+                    <dd class="col-sm-9">@Model.Observacao</dd>
+                }
+            </dl>
+
+            <form asp-action="Delete" class="mt-4">
+                <input type="hidden" asp-for="Id" />
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a asp-action="List" class="btn btn-outline-secondary me-md-2">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

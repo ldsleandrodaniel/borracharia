@@ -1,0 +1,117 @@
+﻿@model borracharia.Models.ServicoEfetuado
+
+@{
+    ViewData["Title"] = "Cadastrar Serviço Efetuado";
+}
+
+<div class="container mt-4">
+    <div class="card border-primary">
+        <div class="card-header bg-primary text-white">
+            <h3 class="card-title">
+                <i class="bi bi-plus-square"></i> @ViewData["Title"]
+            </h3>
+        </div>
+        <div class="card-body">
+            <form asp-action="Create" method="post" class="needs-validation" novalidate>
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="ServicoId" class="form-label fw-bold">Serviço *</label>
+                        <select asp-for="ServicoId" id="servicoSelect" class="form-select" required>
+                            <option value="">Selecione um serviço</option>
+                            @if (ViewBag.Servicos != null)
+                            {
+                                @foreach (var servico in ViewBag.Servicos)
+                                {
+                                    <option value="@servico.Id" data-valor="@servico.Valor.ToString("0.00")">@servico.Nome</option>
+                                }
+                            }
+                        </select>
+                        <span asp-validation-for="ServicoId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Data" class="form-label fw-bold">Data e Hora *</label>
+                        <input asp-for="Data"
+                               type="datetime-local"
+                               class="form-control"
+                               value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")"
+                               required />
+                        <span asp-validation-for="Data" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="Valor" class="form-label fw-bold">Valor Cobrado (R$) *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input asp-for="Valor"
+                                   id="valorInput"
+                                   type="text"
+                                   class="form-control"
+                                   placeholder="Ex: 20,50"
+                                   required />
+                        </div>
+                        <span asp-validation-for="Valor" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Observacao" class="form-label fw-bold">Observações</label>
+                        <textarea asp-for="Observacao" class="form-control" rows="2"></textarea>
+                        <span asp-validation-for="Observacao" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <a asp-action="List" class="btn btn-outline-secondary me-md-2">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Cadastrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Validação do lado do cliente
+        (function () {
+            'use strict'
+
+            var forms = document.querySelectorAll('.needs-validation')
+
+            Array.prototype.slice.call(forms)
+                .forEach(function (form) {
+                    form.addEventListener('submit', function (event) {
+                        if (!form.checkValidity()) {
+                            event.preventDefault()
+                            event.stopPropagation()
+                        }
+
+                        form.classList.add('was-validated')
+                    }, false)
+                })
+
+            // Validação e auto-preenchimento do dropdown
+            document.getElementById('servicoSelect').addEventListener('change', function () {
+                // Validação
+                if (this.value === '') {
+                    this.classList.add('is-invalid')
+                    this.nextElementSibling.textContent = 'Selecione um serviço'
+                } else {
+                    this.classList.remove('is-invalid')
+                    this.nextElementSibling.textContent = ''
+
+                    // Auto-preenchimento do valor
+                    const valorServico = this.options[this.selectedIndex].getAttribute('data-valor')
+                    document.getElementById('valorInput').value = valorServico
+                }
+            })
+        })()
+    </script>
+}
