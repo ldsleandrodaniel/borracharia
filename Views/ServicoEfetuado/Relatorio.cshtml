@@ -3,13 +3,19 @@
 @{
     ViewData["Title"] = "Relatório de Serviços";
 
-    // Obtém a data da query string ou usa hoje como padrão
-    var dataFiltroStr = Context.Request.Query["data"].FirstOrDefault();
-    DateTime dataFiltro;
+    // Obtém as datas da query string
+    var dataInicioStr = Context.Request.Query["dataInicio"].FirstOrDefault();
+    var dataFimStr = Context.Request.Query["dataFim"].FirstOrDefault();
+    DateTime dataInicio, dataFim;
 
-    if (!DateTime.TryParse(dataFiltroStr, out dataFiltro))
+    // Define datas padrão (últimos 30 dias)
+    if (!DateTime.TryParse(dataInicioStr, out dataInicio))
     {
-        dataFiltro = DateTime.Today;
+        dataInicio = DateTime.Today;
+    }
+    if (!DateTime.TryParse(dataFimStr, out dataFim))
+    {
+        dataFim = DateTime.Today;
     }
 
     // Obtém o filtro de serviço da query string
@@ -17,8 +23,9 @@
     int servicoFiltroId;
     int.TryParse(servicoFiltroStr, out servicoFiltroId);
 
-    // Filtra os itens (Data >= data selecionada e serviço selecionado)
-    var servicosFiltrados = Model.Where(item => item.Data.Date >= dataFiltro.Date);
+    // Filtra os itens (entre dataInicio e dataFim)
+    var servicosFiltrados = Model.Where(item => item.Data.Date >= dataInicio.Date &&
+                                              item.Data.Date <= dataFim.Date);
 
     if (servicoFiltroId > 0)
     {
@@ -46,17 +53,26 @@
     <div class="row mb-4">
         <div class="col-md-6">
             <div class="mb-3">
-                <label for="dataFiltro" class="form-label">Data:</label>
+                <label for="dataInicio" class="form-label">Data Inicial:</label>
                 <input type="date"
-                       id="dataFiltro"
+                       id="dataInicio"
                        class="form-control"
-                       value="@dataFiltro.ToString("yyyy-MM-dd")"
-                       onchange="filtrarPorData()" />
+                       value="@dataInicio.ToString("yyyy-MM-dd")"
+                       onchange="aplicarFiltros()" />
+            </div>
+
+            <div class="mb-3">
+                <label for="dataFim" class="form-label">Data Final:</label>
+                <input type="date"
+                       id="dataFim"
+                       class="form-control"
+                       value="@dataFim.ToString("yyyy-MM-dd")"
+                       onchange="aplicarFiltros()" />
             </div>
 
             <div class="mb-3">
                 <label for="servicoFiltro" class="form-label">Serviço:</label>
-                <select id="servicoFiltro" class="form-select" onchange="filtrarPorServico()">
+                <select id="servicoFiltro" class="form-select" onchange="aplicarFiltros()">
                     <option value="0">Todos os Serviços</option>
                     @foreach (var servico in servicosDisponiveis)
                     {
@@ -75,7 +91,7 @@
                     <h5 class="card-title">
                         <i class="bi bi-calendar-check"></i> Período:
                     </h5>
-                    <p class="card-text">A partir de @dataFiltro.ToString("dd/MM/yyyy")</p>
+                    <p class="card-text">De @dataInicio.ToString("dd/MM/yyyy") a @dataFim.ToString("dd/MM/yyyy")</p>
                 </div>
                 <div class="col-md-6 text-end">
                     <h5 class="card-title text-success">
@@ -111,17 +127,13 @@
     </div>
 </div>
 
-<!-- Script para recarregar a página ao alterar a data ou serviço -->
+<!-- Script para recarregar a página com os filtros -->
 <script>
-    function filtrarPorData() {
-        const dataSelecionada = document.getElementById("dataFiltro").value;
+    function aplicarFiltros() {
+        const dataInicio = document.getElementById("dataInicio").value;
+        const dataFim = document.getElementById("dataFim").value;
         const servicoSelecionado = document.getElementById("servicoFiltro").value;
-        window.location.href = `?data=${dataSelecionada}&servico=${servicoSelecionado}`;
-    }
 
-    function filtrarPorServico() {
-        const dataSelecionada = document.getElementById("dataFiltro").value;
-        const servicoSelecionado = document.getElementById("servicoFiltro").value;
-        window.location.href = `?data=${dataSelecionada}&servico=${servicoSelecionado}`;
+        window.location.href = `?dataInicio=${dataInicio}&dataFim=${dataFim}&servico=${servicoSelecionado}`;
     }
 </script>
