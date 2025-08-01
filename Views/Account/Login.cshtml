@@ -17,7 +17,7 @@
 
                     <div class="form-group">
                         <label asp-for="NomeUsuario" class="control-label"></label>
-                        <input asp-for="NomeUsuario" class="form-control" />
+                        <input asp-for="NomeUsuario" class="form-control" id="nomeUsuario" />
                         <span asp-validation-for="NomeUsuario" class="text-danger"></span>
                     </div>
 
@@ -35,3 +35,17 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Versão 1: Selecionando pelo ID que adicionei
+        document.getElementById('nomeUsuario').addEventListener('input', function() {
+            this.value = this.value.toLowerCase();
+        });
+
+        // Versão 2: Alternativa selecionando pelo name (caso prefira)
+        // document.querySelector('input[name="NomeUsuario"]').addEventListener('input', function() {
+        //     this.value = this.value.toLowerCase();
+        // });
+    </script>
+}
