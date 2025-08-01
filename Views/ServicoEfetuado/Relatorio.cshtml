@@ -12,11 +12,26 @@
         dataFiltro = DateTime.Today;
     }
 
-    // Filtra os itens (Data >= data selecionada)
-    var servicosFiltrados = Model.Where(item => item.Data.Date >= dataFiltro.Date).ToList();
+    // Obtém o filtro de serviço da query string
+    var servicoFiltroStr = Context.Request.Query["servico"].FirstOrDefault();
+    int servicoFiltroId;
+    int.TryParse(servicoFiltroStr, out servicoFiltroId);
+
+    // Filtra os itens (Data >= data selecionada e serviço selecionado)
+    var servicosFiltrados = Model.Where(item => item.Data.Date >= dataFiltro.Date);
+
+    if (servicoFiltroId > 0)
+    {
+        servicosFiltrados = servicosFiltrados.Where(item => item.ServicoId == servicoFiltroId);
+    }
+
+    var servicosFiltradosList = servicosFiltrados.ToList();
 
     // Calcula o total
-    var total = servicosFiltrados.Sum(item => item.Valor);
+    var total = servicosFiltradosList.Sum(item => item.Valor);
+
+    // Obtém lista de serviços disponíveis para o dropdown
+    var servicosDisponiveis = Model.Select(item => item.Servico).Distinct().ToList();
 }
 
 <div class="container-fluid">
@@ -32,7 +47,18 @@
                        value="@dataFiltro.ToString("yyyy-MM-dd")"
                        onchange="filtrarPorData()" />
             </div>
-          
+
+            <!-- Filtro por tipo de serviço -->
+            <div class="mx-3">
+                <label for="servicoFiltro" class="form-label">Serviço:</label>
+                <select id="servicoFiltro" class="form-select" onchange="filtrarPorServico()">
+                    <option value="0">Todos os Serviços</option>
+                    @foreach (var servico in servicosDisponiveis)
+                    {
+                        <option value="@servico.Id" selected="@(servico.Id == servicoFiltroId)">@servico.Nome</option>
+                    }
+                </select>
+            </div>
         </div>
         <button onclick="window.print()" class="btn btn-secondary">
             <i class="bi bi-printer"></i> Imprimir
@@ -70,7 +96,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in servicosFiltrados)
+                @foreach (var item in servicosFiltradosList)
                 {
                     <tr>
                         <td>@Html.DisplayFor(modelItem => item.Servico.Nome)</td>
@@ -83,10 +109,17 @@
     </div>
 </div>
 
-<!-- Script para recarregar a página ao alterar a data -->
+<!-- Script para recarregar a página ao alterar a data ou serviço -->
 <script>
     function filtrarPorData() {
         const dataSelecionada = document.getElementById("dataFiltro").value;
-        window.location.href = `?data=${dataSelecionada}`;
+        const servicoSelecionado = document.getElementById("servicoFiltro").value;
+        window.location.href = `?data=${dataSelecionada}&servico=${servicoSelecionado}`;
+    }
+
+    function filtrarPorServico() {
+        const dataSelecionada = document.getElementById("dataFiltro").value;
+        const servicoSelecionado = document.getElementById("servicoFiltro").value;
+        window.location.href = `?data=${dataSelecionada}&servico=${servicoSelecionado}`;
     }
 </script>
