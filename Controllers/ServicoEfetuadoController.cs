@@ -31,6 +31,7 @@ namespace borracharia.Controllers
 
             var servicosEfetuados = await _context.ServicosEfetuados
                 .Include(se => se.Servico)
+                .OrderBy(dt => dt.Data)
                 .ToListAsync();
             return View(servicosEfetuados);
         }
@@ -41,6 +42,7 @@ namespace borracharia.Controllers
 
             var servicosEfetuados = await _context.ServicosEfetuados
                 .Include(se => se.Servico)
+                .OrderBy(dt => dt.Data)
                 .ToListAsync();
             return View(servicosEfetuados);
         }
