@@ -14,11 +14,25 @@ namespace borracharia.Controllers
         public AccountController(IConfiguration config)
         {
             _config = config;
+
+            // Novo sistema híbrido (Environment Variables + appsettings)
             _usuario = new Usuario
             {
-                NomeUsuario = _config["AdminCredentials:Username"],
-                Senha = _config["AdminCredentials:Password"]
+                NomeUsuario = Environment.GetEnvironmentVariable("ADMIN_USERNAME")
+                             ?? _config["AdminCredentials:Username"],
+
+                Senha = Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
+                       ?? _config["AdminCredentials:Password"]
             };
+
+            // Validação crítica (Obrigatória para produção)
+            if (string.IsNullOrEmpty(_usuario.NomeUsuario) || string.IsNullOrEmpty(_usuario.Senha))
+            {
+                throw new InvalidOperationException(
+                    "Credenciais de administrador não configuradas!\n" +
+                    "Defina as variáveis de ambiente ADMIN_USERNAME e ADMIN_PASSWORD\n" +
+                    "OU configure a seção AdminCredentials no appsettings.json");
+            }
         }
 
 

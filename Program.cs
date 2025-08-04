@@ -5,12 +5,32 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
 // Adicione esta linha para configurar o DbContext
- builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+// builder.Services.AddDbContext<AppDbContext>(options =>
+//    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    // 1. Primeiro tenta pegar da variável de ambiente (Railway/Produção)
+    var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
+
+    // 2. Se não encontrar, pega do appsettings.json (Desenvolvimento local)
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    }
+
+    // 3. Validação importante
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        throw new InvalidOperationException("String de conexão não configurada. " +
+            "Defina DATABASE_URL (variável de ambiente) ou DefaultConnection (appsettings.json)");
+    }
+
+    options.UseNpgsql(connectionString);
+});
 
 
 
