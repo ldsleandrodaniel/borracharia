@@ -5,46 +5,70 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-    .AddEnvironmentVariables();
+// Configuração prioritária: ambiente > appsettings (apenas se não vazio)
+builder.Configuration
+    .AddEnvironmentVariables() // Prioridade máxima (Railway)
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true); // Fallback
 
-// Adicione esta linha para configurar o DbContext
-// builder.Services.AddDbContext<AppDbContext>(options =>
-//    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Configuração do DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    // 1. Primeiro tenta pegar da variável de ambiente (Railway/Produção)
-    var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
+    // 1. Tenta pegar do Railway (formato postgres://)
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
-    // 2. Se não encontrar, pega do appsettings.json (Desenvolvimento local)
-    if (string.IsNullOrEmpty(connectionString))
+    // 2. Se não encontrou no ambiente, verifica appsettings (apenas se não vazio)
+    if (string.IsNullOrEmpty(databaseUrl))
     {
-        connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+        var configConnection = builder.Configuration.GetConnectionString("DefaultConnection");
+        databaseUrl = !string.IsNullOrEmpty(configConnection) ? configConnection : null;
     }
 
-    // 3. Validação importante
-    if (string.IsNullOrEmpty(connectionString))
+    // 3. Conversão de formato se for URL do Railway
+    if (!string.IsNullOrEmpty(databaseUrl) && databaseUrl.StartsWith("postgres://"))
     {
-        throw new InvalidOperationException("String de conexão não configurada. " +
-            "Defina DATABASE_URL (variável de ambiente) ou DefaultConnection (appsettings.json)");
+        databaseUrl = ConvertRailwayDbUrlToNpgsql(databaseUrl);
     }
 
-    options.UseNpgsql(connectionString);
+    // 4. Validação final
+    if (string.IsNullOrEmpty(databaseUrl))
+    {
+        throw new InvalidOperationException(
+            "STRING DE CONEXÃO NÃO CONFIGURADA!\n" +
+            "Defina no Railway: DATABASE_URL\n" +
+            "OU no appsettings.json (apenas para desenvolvimento)");
+    }
+
+    options.UseNpgsql(databaseUrl);
 });
 
+// Método auxiliar para converter URL do Railway
+static string ConvertRailwayDbUrlToNpgsql(string railwayUrl)
+{
+    var uri = new Uri(railwayUrl);
+    var userInfo = uri.UserInfo.Split(':');
+    return $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};" +
+           $"Username={userInfo[0]};Password={userInfo[1]};" +
+           "SSL Mode=Require;Trust Server Certificate=true";
+}
 
-
-// Add services to the container.
+// Configurações padrão do app
 builder.Services.AddControllersWithViews();
+
+// Autenticação
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options => {
+    .AddCookie(options =>
+    {
         options.LoginPath = "/Account/Login";
         options.LogoutPath = "/Account/Logout";
         options.AccessDeniedPath = "/Account/AccessDenied";
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.HttpOnly = true;
     });
 
 builder.Services.AddAuthorization();
 
+// Configurações de proxy
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -52,21 +76,17 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.HttpOnly = true;
-});
-
+// Sessão
 builder.Services.AddSession(options =>
 {
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
+
 var app = builder.Build();
 
+// Middleware pipeline
 app.UseForwardedHeaders();
 app.Use((context, next) =>
 {
@@ -77,24 +97,23 @@ app.Use((context, next) =>
     return next();
 });
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+
+    // Aplica migrações automaticamente em produção
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Database.Migrate(); // Aplica migrações automaticamente
+        db.Database.Migrate();
     }
 }
 
-AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true); // Corrige problemas de timezone
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
 app.UseSession();
 app.UseAuthentication();

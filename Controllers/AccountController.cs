@@ -8,33 +8,40 @@ namespace borracharia.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly IConfiguration _config;
         private readonly Usuario _usuario;
 
         public AccountController(IConfiguration config)
         {
-            _config = config;
+            // 1. Prioriza variáveis de ambiente (Railway)
+            var envUser = Environment.GetEnvironmentVariable("ADMIN_USERNAME");
+            var envPass = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
 
-            // Novo sistema híbrido (Environment Variables + appsettings)
+            // 2. Fallback para appsettings.json apenas se não vazio
+            var configUser = config["AdminCredentials:Username"];
+            var configPass = config["AdminCredentials:Password"];
+
             _usuario = new Usuario
             {
-                NomeUsuario = Environment.GetEnvironmentVariable("ADMIN_USERNAME")
-                             ?? _config["AdminCredentials:Username"],
+                NomeUsuario = !string.IsNullOrEmpty(envUser) ? envUser
+                             : (!string.IsNullOrEmpty(configUser) ? configUser : null),
 
-                Senha = Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
-                       ?? _config["AdminCredentials:Password"]
+                Senha = !string.IsNullOrEmpty(envPass) ? envPass
+                        : (!string.IsNullOrEmpty(configPass) ? configPass : null)
             };
 
-            // Validação crítica (Obrigatória para produção)
+            // Validação rigorosa
             if (string.IsNullOrEmpty(_usuario.NomeUsuario) || string.IsNullOrEmpty(_usuario.Senha))
             {
                 throw new InvalidOperationException(
-                    "Credenciais de administrador não configuradas!\n" +
-                    "Defina as variáveis de ambiente ADMIN_USERNAME e ADMIN_PASSWORD\n" +
-                    "OU configure a seção AdminCredentials no appsettings.json");
+                    "CREDENCIAIS NÃO CONFIGURADAS!\n" +
+                    "Defina no Railway:\n" +
+                    "ADMIN_USERNAME e ADMIN_PASSWORD\n" +
+                    "OU no appsettings.json (apenas para desenvolvimento)");
             }
-        }
 
+            // Log para debug (remova em produção)
+            Console.WriteLine($"Usuário admin carregado: {_usuario.NomeUsuario}");
+        }
 
         [HttpGet]
         public IActionResult Login(string returnUrl = null)
@@ -51,23 +58,28 @@ namespace borracharia.Controllers
                 if (model.NomeUsuario == _usuario.NomeUsuario && model.Senha == _usuario.Senha)
                 {
                     var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, _usuario.NomeUsuario),
-                    new Claim(ClaimTypes.Role, "Administrador")
-                };
+                    {
+                        new Claim(ClaimTypes.Name, _usuario.NomeUsuario),
+                        new Claim(ClaimTypes.Role, "Administrador")
+                    };
 
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    var claimsIdentity = new ClaimsIdentity(
+                        claims,
+                        CookieAuthenticationDefaults.AuthenticationScheme);
 
                     await HttpContext.SignInAsync(
                         CookieAuthenticationDefaults.AuthenticationScheme,
-                        new ClaimsPrincipal(claimsIdentity));
+                        new ClaimsPrincipal(claimsIdentity),
+                        new AuthenticationProperties
+                        {
+                            IsPersistent = false // Cookie não persistente
+                        });
 
-                    if (Url.IsLocalUrl(returnUrl))
-                        return Redirect(returnUrl);
-                    else
-                        return RedirectToAction("Index", "Home");
+                    return Url.IsLocalUrl(returnUrl)
+                        ? Redirect(returnUrl)
+                        : RedirectToAction("Index", "Home");
                 }
-                ModelState.AddModelError(string.Empty, "Usuário ou senha inválidos");
+                ModelState.AddModelError(string.Empty, "Credenciais inválidas");
             }
             return View(model);
         }
@@ -75,7 +87,9 @@ namespace borracharia.Controllers
         [HttpPost]
         public async Task<IActionResult> Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignOutAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme);
+
             return RedirectToAction("Index", "Home");
         }
 
@@ -85,4 +99,3 @@ namespace borracharia.Controllers
         }
     }
 }
-
