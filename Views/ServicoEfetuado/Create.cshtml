@@ -36,7 +36,7 @@
                         <input asp-for="Data"
                                type="datetime-local"
                                class="form-control"
-                               value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")"
+                               id="dataHoraInput"
                                required />
                         <span asp-validation-for="Data" class="text-danger"></span>
                     </div>
@@ -79,6 +79,15 @@
 
 @section Scripts {
     <script>
+        // Configura a data/hora atual do computador do usuário
+        document.addEventListener('DOMContentLoaded', function () {
+            const agora = new Date();
+            // Ajusta o offset para o fuso horário local
+            const offset = agora.getTimezoneOffset() * 60000;
+            const dataLocal = new Date(agora.getTime() - offset);
+            document.getElementById('dataHoraInput').value = dataLocal.toISOString().slice(0, 16);
+        });
+
         // Validação do lado do cliente
         (function () {
             'use strict'
